@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import '../theme.dart';
+import 'attendance_screen.dart';
+import 'notes_screen.dart';
+import 'pyq_screen.dart';
+import 'assistant_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -95,12 +99,17 @@ class DashboardScreen extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.baseline,
                         textBaseline: TextBaseline.alphabetic,
                         children: [
-                          GradientText(
+                          const GradientText(
                             '88',
-                            gradient: const LinearGradient(
+                            gradient: LinearGradient(
                               colors: [CampusGptTheme.primary, CampusGptTheme.secondary],
                             ),
-                            style: Theme.of(context).textTheme.displayMedium,
+                            style: TextStyle(
+                              fontSize: 32,
+                              fontWeight: FontWeight.w700,
+                              height: 1.2,
+                              color: Colors.white,
+                            ),
                           ),
                           Text(
                             '/100',
@@ -162,6 +171,7 @@ class DashboardScreen extends StatelessWidget {
           children: [
             Expanded(
               child: GlassCard(
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AttendanceScreen())),
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -204,6 +214,7 @@ class DashboardScreen extends StatelessWidget {
             const SizedBox(width: 16),
             Expanded(
               child: GlassCard(
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotesScreen())),
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -230,6 +241,7 @@ class DashboardScreen extends StatelessWidget {
           children: [
             Expanded(
               child: GlassCard(
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PyqScreen())),
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -252,6 +264,7 @@ class DashboardScreen extends StatelessWidget {
             const SizedBox(width: 16),
             Expanded(
               child: GlassCard(
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AssistantScreen())),
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -283,11 +296,22 @@ class DashboardScreen extends StatelessWidget {
               'UPCOMING EXAMS',
               style: Theme.of(context).textTheme.labelSmall?.copyWith(letterSpacing: 1.5),
             ),
-            Text(
-              'View All',
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: CampusGptTheme.secondary,
-                fontSize: 10,
+            GestureDetector(
+              onTap: () {
+                ScaffoldMessenger.of(context).clearSnackBars();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Loading all upcoming exams...'),
+                    backgroundColor: CampusGptTheme.secondaryContainer,
+                  ),
+                );
+              },
+              child: Text(
+                'View All',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: CampusGptTheme.secondary,
+                  fontSize: 10,
+                ),
               ),
             ),
           ],

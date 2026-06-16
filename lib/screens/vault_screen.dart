@@ -189,7 +189,19 @@ class VaultScreen extends StatelessWidget {
               ],
             ),
           ),
-          Icon(Icons.download, color: CampusGptTheme.primary.withOpacity(0.8)),
+          IconButton(
+            icon: Icon(Icons.download, color: CampusGptTheme.primary.withOpacity(0.8)),
+            onPressed: () {
+              ScaffoldMessenger.of(context).clearSnackBars();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Downloading $title...'),
+                  backgroundColor: CampusGptTheme.secondaryContainer,
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+            },
+          ),
         ],
       ),
     );

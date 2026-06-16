@@ -1,11 +1,130 @@
 import 'package:flutter/material.dart';
 import '../theme.dart';
 
-class PyqScreen extends StatelessWidget {
+class PyqData {
+  final String topTopic;
+  final String difficulty;
+  final List<Map<String, String>> questions;
+
+  PyqData({
+    required this.topTopic,
+    required this.difficulty,
+    required this.questions,
+  });
+}
+
+class PyqScreen extends StatefulWidget {
   const PyqScreen({super.key});
 
   @override
+  State<PyqScreen> createState() => _PyqScreenState();
+}
+
+class _PyqScreenState extends State<PyqScreen> {
+  String _selectedSubject = 'Advanced Thermodynamics';
+
+  final Map<String, PyqData> _mockData = {
+    'Advanced Thermodynamics': PyqData(
+      topTopic: 'Carnot Cycle',
+      difficulty: 'High (8.5/10)',
+      questions: [
+        {
+          'q': 'Derive the efficiency of a Carnot engine working between temperatures T1 and T2.',
+          'freq': 'Asked 4 times',
+          'prob': 'High Probability',
+          'hint': 'Start with the PV diagram. Calculate heat absorbed (Q1) during isothermal expansion and heat rejected (Q2) during isothermal compression. Efficiency = 1 - Q2/Q1.',
+        },
+        {
+          'q': 'Explain the Clausius inequality and its significance in thermodynamics.',
+          'freq': 'Asked 3 times',
+          'prob': 'Medium Probability',
+          'hint': 'The cyclic integral of dQ/T is less than or equal to zero. Mention how it differentiates between reversible and irreversible processes.',
+        },
+        {
+          'q': 'What is the physical significance of entropy? Discuss the principle of increase of entropy.',
+          'freq': 'Asked 3 times',
+          'prob': 'Medium Probability',
+          'hint': 'Relate entropy to disorder/randomness. State the second law in terms of isolated systems always moving towards maximum entropy.',
+        },
+      ],
+    ),
+    'Data Structures & Algos': PyqData(
+      topTopic: 'Dynamic Programming',
+      difficulty: 'Very High (9.0/10)',
+      questions: [
+        {
+          'q': 'Explain Dijkstra\'s shortest path algorithm with an example.',
+          'freq': 'Asked 5 times',
+          'prob': 'High Probability',
+          'hint': 'Use a priority queue. Initialize all distances to infinity, start node to 0. Greedily pick the minimum distance node and relax its edges.',
+        },
+        {
+          'q': 'Write a recursive and iterative function for binary search.',
+          'freq': 'Asked 3 times',
+          'prob': 'Medium Probability',
+          'hint': 'Ensure the array is sorted. Keep track of low and high indices, calculate mid, and divide the search space by half.',
+        },
+      ],
+    ),
+    'Quantum Physics': PyqData(
+      topTopic: 'Schrodinger Eq.',
+      difficulty: 'Medium (7.0/10)',
+      questions: [
+        {
+          'q': 'Derive the time-independent Schrodinger wave equation.',
+          'freq': 'Asked 4 times',
+          'prob': 'High Probability',
+          'hint': 'Start with the classical wave equation. Use de Broglie wavelength and substitute the momentum operator to arrive at the Hamiltonian operator form.',
+        },
+      ],
+    ),
+  };
+
+  void _showHintDialog(String question, String hint) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: CampusGptTheme.surfaceContainerHigh,
+        title: Row(
+          children: [
+            const Icon(Icons.auto_awesome, color: CampusGptTheme.primary),
+            const SizedBox(width: 8),
+            const Text('AI Hint', style: TextStyle(color: CampusGptTheme.onSurface)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              question,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              hint,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: CampusGptTheme.onSurface,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Got it', style: TextStyle(color: CampusGptTheme.primary)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final currentData = _mockData[_selectedSubject]!;
+
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 64, 16, 120),
       children: [
@@ -35,12 +154,11 @@ class PyqScreen extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
-              value: 'Advanced Thermodynamics',
+              value: _selectedSubject,
               dropdownColor: CampusGptTheme.surfaceContainerHigh,
               isExpanded: true,
               icon: const Icon(Icons.keyboard_arrow_down, color: CampusGptTheme.onSurface),
-              items: ['Advanced Thermodynamics', 'Data Structures & Algos', 'Quantum Physics']
-                  .map((String value) {
+              items: _mockData.keys.map((String value) {
                 return DropdownMenuItem<String>(
                   value: value,
                   child: Text(
@@ -51,7 +169,13 @@ class PyqScreen extends StatelessWidget {
                   ),
                 );
               }).toList(),
-              onChanged: (_) {},
+              onChanged: (String? newValue) {
+                if (newValue != null) {
+                  setState(() {
+                    _selectedSubject = newValue;
+                  });
+                }
+              },
             ),
           ),
         ),
@@ -73,7 +197,7 @@ class PyqScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Carnot Cycle',
+                      currentData.topTopic,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.w600,
                         color: CampusGptTheme.onSurface,
@@ -98,7 +222,7 @@ class PyqScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'High (8.5/10)',
+                      currentData.difficulty,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.w600,
                         color: CampusGptTheme.onSurface,
@@ -119,31 +243,21 @@ class PyqScreen extends StatelessWidget {
           style: Theme.of(context).textTheme.labelSmall?.copyWith(letterSpacing: 1.5),
         ),
         const SizedBox(height: 16),
-        _buildQuestionCard(
-          context, 
-          'Derive the efficiency of a Carnot engine working between temperatures T1 and T2.',
-          'Asked 4 times',
-          'High Probability',
-        ),
-        const SizedBox(height: 12),
-        _buildQuestionCard(
-          context, 
-          'Explain the Clausius inequality and its significance in thermodynamics.',
-          'Asked 3 times',
-          'Medium Probability',
-        ),
-        const SizedBox(height: 12),
-        _buildQuestionCard(
-          context, 
-          'What is the physical significance of entropy? Discuss the principle of increase of entropy.',
-          'Asked 3 times',
-          'Medium Probability',
-        ),
+        ...currentData.questions.map((q) => Padding(
+          padding: const EdgeInsets.only(bottom: 12.0),
+          child: _buildQuestionCard(
+            context, 
+            q['q']!,
+            q['freq']!,
+            q['prob']!,
+            q['hint']!,
+          ),
+        )).toList(),
       ],
     );
   }
 
-  Widget _buildQuestionCard(BuildContext context, String question, String frequency, String probability) {
+  Widget _buildQuestionCard(BuildContext context, String question, String frequency, String probability, String hint) {
     return GlassCard(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -184,7 +298,7 @@ class PyqScreen extends StatelessWidget {
           Align(
             alignment: Alignment.centerRight,
             child: TextButton.icon(
-              onPressed: () {},
+              onPressed: () => _showHintDialog(question, hint),
               icon: const Icon(Icons.auto_awesome, size: 16),
               label: const Text('AI Hint'),
               style: TextButton.styleFrom(

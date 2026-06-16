@@ -1,8 +1,69 @@
 import 'package:flutter/material.dart';
 import '../theme.dart';
 
-class AttendanceScreen extends StatelessWidget {
+class SubjectAttendance {
+  final String title;
+  int attended;
+  int total;
+
+  SubjectAttendance({
+    required this.title,
+    required this.attended,
+    required this.total,
+  });
+
+  double get percentage => total == 0 ? 0.0 : (attended / total) * 100;
+  bool get isSafe => percentage >= 75.0;
+
+  int classesToReachSafe() {
+    if (isSafe) return 0;
+    // We need (attended + x) / (total + x) >= 0.75
+    // attended + x >= 0.75 * total + 0.75 * x
+    // 0.25 * x >= 0.75 * total - attended
+    // x >= 3 * total - 4 * attended
+    int required = (3 * total - 4 * attended);
+    return required > 0 ? required : 0;
+  }
+}
+
+class AttendanceScreen extends StatefulWidget {
   const AttendanceScreen({super.key});
+
+  @override
+  State<AttendanceScreen> createState() => _AttendanceScreenState();
+}
+
+class _AttendanceScreenState extends State<AttendanceScreen> {
+  final List<SubjectAttendance> _subjects = [
+    SubjectAttendance(title: 'Mathematics III', attended: 32, total: 36),
+    SubjectAttendance(title: 'Physics - Quantum', attended: 25, total: 35),
+    SubjectAttendance(title: 'Computer Science', attended: 29, total: 34),
+  ];
+
+  double get _overallAttendance {
+    int totalAttended = _subjects.fold(0, (sum, item) => sum + item.attended);
+    int totalClasses = _subjects.fold(0, (sum, item) => sum + item.total);
+    return totalClasses == 0 ? 0.0 : (totalAttended / totalClasses) * 100;
+  }
+
+  void _markAttendance(int index, bool present) {
+    setState(() {
+      if (present) {
+        _subjects[index].attended++;
+      }
+      _subjects[index].total++;
+    });
+    
+    // Show a small feedback snackbar
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(present ? 'Marked Present' : 'Marked Absent'),
+        backgroundColor: present ? Colors.green : CampusGptTheme.error,
+        duration: const Duration(seconds: 1),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -45,15 +106,15 @@ class AttendanceScreen extends StatelessWidget {
                 textBaseline: TextBaseline.alphabetic,
                 children: [
                   Text(
-                    '84.5',
+                    _overallAttendance.toStringAsFixed(1),
                     style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                      color: CampusGptTheme.primary,
+                      color: _overallAttendance >= 75.0 ? CampusGptTheme.primary : CampusGptTheme.error,
                     ),
                   ),
                   Text(
                     '%',
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      color: CampusGptTheme.primary,
+                      color: _overallAttendance >= 75.0 ? CampusGptTheme.primary : CampusGptTheme.error,
                     ),
                   ),
                 ],
@@ -62,14 +123,16 @@ class AttendanceScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.1),
+                  color: _overallAttendance >= 75.0 ? Colors.green.withOpacity(0.1) : CampusGptTheme.error.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.green.withOpacity(0.3)),
+                  border: Border.all(
+                    color: _overallAttendance >= 75.0 ? Colors.green.withOpacity(0.3) : CampusGptTheme.error.withOpacity(0.3)
+                  ),
                 ),
                 child: Text(
-                  'SAFE (Target: 75%)',
+                  _overallAttendance >= 75.0 ? 'SAFE (Target: 75%)' : 'WARNING (Target: 75%)',
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: Colors.greenAccent,
+                    color: _overallAttendance >= 75.0 ? Colors.greenAccent : CampusGptTheme.error,
                   ),
                 ),
               ),
@@ -84,17 +147,20 @@ class AttendanceScreen extends StatelessWidget {
           style: Theme.of(context).textTheme.labelSmall?.copyWith(letterSpacing: 1.5),
         ),
         const SizedBox(height: 16),
-        _buildSubjectCard(context, 'Mathematics III', 88.8, 32, 36, true),
-        const SizedBox(height: 12),
-        _buildSubjectCard(context, 'Physics - Quantum', 71.4, 25, 35, false),
-        const SizedBox(height: 12),
-        _buildSubjectCard(context, 'Computer Science', 85.3, 29, 34, true),
+        ...List.generate(_subjects.length, (index) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12.0),
+            child: _buildSubjectCard(index),
+          );
+        }),
       ],
     );
   }
 
-  Widget _buildSubjectCard(
-      BuildContext context, String title, double percentage, int attended, int total, bool isSafe) {
+  Widget _buildSubjectCard(int index) {
+    final subject = _subjects[index];
+    final isSafe = subject.isSafe;
+
     return GlassCard(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -103,11 +169,14 @@ class AttendanceScreen extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                title,
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: CampusGptTheme.onSurface,
+              Expanded(
+                child: Text(
+                  subject.title,
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: CampusGptTheme.onSurface,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               Container(
@@ -137,20 +206,20 @@ class AttendanceScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '$percentage%',
+                    '${subject.percentage.toStringAsFixed(1)}%',
                     style: Theme.of(context).textTheme.headlineMedium,
                   ),
                   Text(
-                    '$attended/$total Classes',
+                    '${subject.attended}/${subject.total} Classes',
                     style: Theme.of(context).textTheme.labelSmall,
                   ),
                 ],
               ),
               Row(
                 children: [
-                  _buildActionButton(context, Icons.close, CampusGptTheme.error),
+                  _buildActionButton(Icons.close, CampusGptTheme.error, () => _markAttendance(index, false)),
                   const SizedBox(width: 8),
-                  _buildActionButton(context, Icons.check, Colors.greenAccent),
+                  _buildActionButton(Icons.check, Colors.greenAccent, () => _markAttendance(index, true)),
                 ],
               ),
             ],
@@ -158,7 +227,7 @@ class AttendanceScreen extends StatelessWidget {
           if (!isSafe) ...[
             const SizedBox(height: 16),
             Text(
-              '⚠️ Attend next 3 classes to reach 75%',
+              '⚠️ Attend next ${subject.classesToReachSafe()} classes to reach 75%',
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
                 color: CampusGptTheme.error,
               ),
@@ -169,7 +238,7 @@ class AttendanceScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildActionButton(BuildContext context, IconData icon, Color color) {
+  Widget _buildActionButton(IconData icon, Color color, VoidCallback onPressed) {
     return Container(
       width: 40,
       height: 40,
@@ -180,7 +249,7 @@ class AttendanceScreen extends StatelessWidget {
       ),
       child: IconButton(
         icon: Icon(icon, color: color, size: 20),
-        onPressed: () {},
+        onPressed: onPressed,
       ),
     );
   }
