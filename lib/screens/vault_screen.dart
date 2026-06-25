@@ -1,38 +1,101 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../models/app_models.dart';
+import '../state/app_state.dart';
 import '../theme.dart';
+import '../utils/file_download.dart';
+import '../widgets/help_dialog.dart';
+import 'attendance_screen.dart';
 import 'gpa_screen.dart';
 import 'pyq_screen.dart';
-import 'attendance_screen.dart';
 
-class VaultScreen extends StatelessWidget {
+class VaultScreen extends StatefulWidget {
   const VaultScreen({super.key});
 
   @override
+  State<VaultScreen> createState() => _VaultScreenState();
+}
+
+class _VaultScreenState extends State<VaultScreen> {
+  final _searchController = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<VaultFile> _filterFiles(List<VaultFile> files) {
+    if (_query.isEmpty) return files;
+    final q = _query.toLowerCase();
+    return files.where((f) => f.name.toLowerCase().contains(q)).toList();
+  }
+
+  void _downloadFile(BuildContext context, VaultFile file) {
+    try {
+      downloadTextFile(
+        file.name.replaceAll(RegExp(r'\.(pdf|docx)$', caseSensitive: false), '.txt'),
+        '# ${file.name}\n\n${file.content}',
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Downloaded ${file.name}'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Download started for ${file.name}')),
+      );
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final files = _filterFiles(context.watch<AppState>().vaultFiles);
+
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 64, 16, 120),
       children: [
-        // Header
         Row(
           children: [
             Expanded(
               child: Text(
                 'Resource Vault',
                 style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                  fontSize: 24,
-                  color: CampusGptTheme.onSurface,
-                ),
+                      fontSize: 24,
+                      color: CampusGptTheme.onSurface,
+                    ),
               ),
             ),
             IconButton(
-              icon: const Icon(Icons.search),
-              onPressed: () {},
+              icon: const Icon(Icons.help_outline),
+              onPressed: () => showHelpDialog(
+                context,
+                title: 'Resource Vault',
+                body:
+                    'Browse folders, use quick tools, and download study files. Use search to filter recent files.',
+              ),
             ),
           ],
         ),
+        const SizedBox(height: 16),
+        TextField(
+          controller: _searchController,
+          onChanged: (value) => setState(() => _query = value.trim()),
+          decoration: InputDecoration(
+            hintText: 'Search files...',
+            prefixIcon: const Icon(Icons.search),
+            filled: true,
+            fillColor: CampusGptTheme.surfaceContainer,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+          ),
+        ),
         const SizedBox(height: 24),
-
-        // Tools shortcuts (linking to the other tools)
         Text(
           'QUICK TOOLS',
           style: Theme.of(context).textTheme.labelSmall?.copyWith(letterSpacing: 1.5),
@@ -42,9 +105,9 @@ class VaultScreen extends StatelessWidget {
           children: [
             Expanded(
               child: _buildToolShortcut(
-                context, 
-                Icons.analytics, 
-                'PYQ Analyzer', 
+                context,
+                Icons.analytics,
+                'PYQ Analyzer',
                 CampusGptTheme.tertiary,
                 () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PyqScreen())),
               ),
@@ -52,9 +115,9 @@ class VaultScreen extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: _buildToolShortcut(
-                context, 
-                Icons.calculate, 
-                'GPA Predictor', 
+                context,
+                Icons.calculate,
+                'GPA Predictor',
                 CampusGptTheme.secondary,
                 () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GpaScreen())),
               ),
@@ -62,9 +125,9 @@ class VaultScreen extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: _buildToolShortcut(
-                context, 
-                Icons.fact_check, 
-                'Attendance', 
+                context,
+                Icons.fact_check,
+                'Attendance',
                 Colors.greenAccent,
                 () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AttendanceScreen())),
               ),
@@ -72,8 +135,6 @@ class VaultScreen extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 32),
-        
-        // Folders
         Text(
           'YOUR FOLDERS',
           style: Theme.of(context).textTheme.labelSmall?.copyWith(letterSpacing: 1.5),
@@ -84,25 +145,32 @@ class VaultScreen extends StatelessWidget {
         _buildFolderCard(context, 'Data Structures & Algos', '24 Files • Updated Yesterday'),
         const SizedBox(height: 12),
         _buildFolderCard(context, 'Quantum Physics', '8 Files • Updated last week'),
-        
         const SizedBox(height: 32),
-        
-        // Recent Files
         Text(
           'RECENT FILES',
           style: Theme.of(context).textTheme.labelSmall?.copyWith(letterSpacing: 1.5),
         ),
         const SizedBox(height: 16),
-        _buildFileCard(context, 'Thermodynamics_CheatSheet.pdf', 'PDF • 2.4 MB', Icons.picture_as_pdf),
-        const SizedBox(height: 12),
-        _buildFileCard(context, 'Midterm_Syllabus.docx', 'DOCX • 145 KB', Icons.description),
-        const SizedBox(height: 12),
-        _buildFileCard(context, 'Lecture_5_Notes.pdf', 'PDF • 1.1 MB', Icons.picture_as_pdf),
+        if (files.isEmpty)
+          Text('No files match your search.', style: Theme.of(context).textTheme.bodySmall)
+        else
+          ...files.map(
+            (file) => Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _buildFileCard(context, file),
+            ),
+          ),
       ],
     );
   }
 
-  Widget _buildToolShortcut(BuildContext context, IconData icon, String title, Color color, VoidCallback onTap) {
+  Widget _buildToolShortcut(
+    BuildContext context,
+    IconData icon,
+    String title,
+    Color color,
+    VoidCallback onTap,
+  ) {
     return GestureDetector(
       onTap: onTap,
       child: GlassCard(
@@ -115,8 +183,7 @@ class VaultScreen extends StatelessWidget {
               title,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(fontSize: 10),
               textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+              maxLines: 2,
             ),
           ],
         ),
@@ -135,28 +202,17 @@ class VaultScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: CampusGptTheme.onSurface,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
+                Text(title, style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600)),
+                Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
               ],
             ),
           ),
-          Icon(Icons.more_vert, color: CampusGptTheme.onSurfaceVariant.withOpacity(0.5)),
         ],
       ),
     );
   }
 
-  Widget _buildFileCard(BuildContext context, String title, String subtitle, IconData icon) {
+  Widget _buildFileCard(BuildContext context, VaultFile file) {
     return GlassCard(
       padding: const EdgeInsets.all(16),
       child: Row(
@@ -167,40 +223,21 @@ class VaultScreen extends StatelessWidget {
               color: CampusGptTheme.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(icon, color: CampusGptTheme.secondary, size: 24),
+            child: const Icon(Icons.picture_as_pdf, color: CampusGptTheme.secondary, size: 24),
           ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w500,
-                    color: CampusGptTheme.onSurface,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: Theme.of(context).textTheme.labelSmall,
-                ),
+                Text(file.name, style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500)),
+                Text(file.meta, style: Theme.of(context).textTheme.labelSmall),
               ],
             ),
           ),
           IconButton(
             icon: Icon(Icons.download, color: CampusGptTheme.primary.withOpacity(0.8)),
-            onPressed: () {
-              ScaffoldMessenger.of(context).clearSnackBars();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Downloading $title...'),
-                  backgroundColor: CampusGptTheme.secondaryContainer,
-                  duration: const Duration(seconds: 2),
-                ),
-              );
-            },
+            onPressed: () => _downloadFile(context, file),
           ),
         ],
       ),

@@ -1,22 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../state/app_state.dart';
 import '../theme.dart';
 
-class GpaScreen extends StatefulWidget {
+class GpaScreen extends StatelessWidget {
   const GpaScreen({super.key});
 
   @override
-  State<GpaScreen> createState() => _GpaScreenState();
-}
-
-class _GpaScreenState extends State<GpaScreen> {
-  double _targetGpa = 8.5;
-
-  @override
   Widget build(BuildContext context) {
+    final appState = context.watch<AppState>();
+    final targetGpa = appState.targetGpa;
+    final currentCgpa = appState.currentCgpa;
+
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 64, 16, 120),
       children: [
-        // Header
         Row(
           children: [
             if (Navigator.of(context).canPop())
@@ -28,16 +26,14 @@ class _GpaScreenState extends State<GpaScreen> {
               child: Text(
                 'GPA Predictor',
                 style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                  fontSize: 24,
-                  color: CampusGptTheme.onSurface,
-                ),
+                      fontSize: 24,
+                      color: CampusGptTheme.onSurface,
+                    ),
               ),
             ),
           ],
         ),
         const SizedBox(height: 24),
-        
-        // Current vs Target
         Row(
           children: [
             Expanded(
@@ -45,17 +41,14 @@ class _GpaScreenState extends State<GpaScreen> {
                 padding: const EdgeInsets.all(20),
                 child: Column(
                   children: [
-                    Text(
-                      'Current CGPA',
-                      style: Theme.of(context).textTheme.labelSmall,
-                    ),
+                    Text('Current CGPA', style: Theme.of(context).textTheme.labelSmall),
                     const SizedBox(height: 8),
                     Text(
-                      '8.2',
+                      currentCgpa.toStringAsFixed(1),
                       style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                        color: CampusGptTheme.onSurface,
-                        fontSize: 36,
-                      ),
+                            color: CampusGptTheme.onSurface,
+                            fontSize: 36,
+                          ),
                     ),
                   ],
                 ),
@@ -69,17 +62,15 @@ class _GpaScreenState extends State<GpaScreen> {
                   children: [
                     Text(
                       'Target CGPA',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: CampusGptTheme.secondary,
-                      ),
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(color: CampusGptTheme.secondary),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      _targetGpa.toStringAsFixed(1),
+                      targetGpa.toStringAsFixed(1),
                       style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                        color: CampusGptTheme.secondary,
-                        fontSize: 36,
-                      ),
+                            color: CampusGptTheme.secondary,
+                            fontSize: 36,
+                          ),
                     ),
                   ],
                 ),
@@ -88,8 +79,6 @@ class _GpaScreenState extends State<GpaScreen> {
           ],
         ),
         const SizedBox(height: 24),
-        
-        // Slider
         GlassCard(
           padding: const EdgeInsets.all(20),
           child: Column(
@@ -98,9 +87,9 @@ class _GpaScreenState extends State<GpaScreen> {
               Text(
                 'Set your target',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: CampusGptTheme.onSurface,
-                ),
+                      fontWeight: FontWeight.w600,
+                      color: CampusGptTheme.onSurface,
+                    ),
               ),
               const SizedBox(height: 16),
               SliderTheme(
@@ -111,16 +100,12 @@ class _GpaScreenState extends State<GpaScreen> {
                   overlayColor: CampusGptTheme.secondary.withOpacity(0.2),
                 ),
                 child: Slider(
-                  value: _targetGpa,
+                  value: targetGpa,
                   min: 5.0,
                   max: 10.0,
                   divisions: 50,
-                  label: _targetGpa.toStringAsFixed(1),
-                  onChanged: (value) {
-                    setState(() {
-                      _targetGpa = value;
-                    });
-                  },
+                  label: targetGpa.toStringAsFixed(1),
+                  onChanged: (value) => appState.setTargetGpa(value),
                 ),
               ),
               const SizedBox(height: 16),
@@ -137,10 +122,10 @@ class _GpaScreenState extends State<GpaScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'To reach 8.5, you need a SGPA of 9.1 this semester.',
+                        appState.gpaAdvice,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: CampusGptTheme.onSurface,
-                        ),
+                              color: CampusGptTheme.onSurface,
+                            ),
                       ),
                     ),
                   ],
@@ -150,8 +135,6 @@ class _GpaScreenState extends State<GpaScreen> {
           ),
         ),
         const SizedBox(height: 24),
-        
-        // Course Predictions
         Text(
           'COURSE PREDICTIONS',
           style: Theme.of(context).textTheme.labelSmall?.copyWith(letterSpacing: 1.5),
@@ -180,15 +163,12 @@ class _GpaScreenState extends State<GpaScreen> {
                 Text(
                   title,
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: CampusGptTheme.onSurface,
-                  ),
+                        fontWeight: FontWeight.w600,
+                        color: CampusGptTheme.onSurface,
+                      ),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  credits,
-                  style: Theme.of(context).textTheme.labelSmall,
-                ),
+                Text(credits, style: Theme.of(context).textTheme.labelSmall),
               ],
             ),
           ),
@@ -197,13 +177,10 @@ class _GpaScreenState extends State<GpaScreen> {
             decoration: BoxDecoration(
               color: CampusGptTheme.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: CampusGptTheme.onSurface.withOpacity(0.1)),
             ),
             child: Text(
               grade,
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                color: CampusGptTheme.primary,
-              ),
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(color: CampusGptTheme.primary),
             ),
           ),
         ],

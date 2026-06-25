@@ -1,42 +1,42 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../state/app_state.dart';
 import '../theme.dart';
+import '../widgets/user_avatar.dart';
 import 'attendance_screen.dart';
+import 'assistant_screen.dart';
+import 'exams_screen.dart';
+import 'gpa_screen.dart';
 import 'notes_screen.dart';
 import 'pyq_screen.dart';
-import 'assistant_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final appState = context.watch<AppState>();
+    final user = appState.user!;
+    final attendance = appState.overallAttendance;
+    final aiScore = appState.aiScore;
+    final notesCount = appState.notes.length;
+    final isSafe = attendance >= 75;
+
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 64, 16, 120),
       children: [
-        // Welcome Header
         Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: CampusGptTheme.primary.withOpacity(0.3)),
-                image: const DecorationImage(
-                  image: NetworkImage('https://i.pravatar.cc/150?img=11'),
-                  fit: BoxFit.cover,
-                ),
-              ),
-            ),
+            UserAvatar(name: user.name, radius: 20),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
                 'CampusGPT',
                 style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                  color: CampusGptTheme.primaryContainer,
-                  fontSize: 24,
-                ),
+                      color: CampusGptTheme.primaryContainer,
+                      fontSize: 24,
+                    ),
               ),
             ),
             Container(
@@ -47,18 +47,21 @@ class DashboardScreen extends StatelessWidget {
                 border: Border.all(color: CampusGptTheme.primary.withOpacity(0.2)),
               ),
               child: Text(
-                '🔥 12',
+                'Streak ${appState.streakDays}',
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: CampusGptTheme.primary,
-                  fontWeight: FontWeight.bold,
-                ),
+                      color: CampusGptTheme.primary,
+                      fontWeight: FontWeight.bold,
+                    ),
               ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.logout, size: 20),
+              tooltip: 'Sign out',
+              onPressed: () => appState.signOut(),
             ),
           ],
         ),
         const SizedBox(height: 32),
-        
-        // Welcome Card
         GlassCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -72,11 +75,11 @@ class DashboardScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Welcome back, Alex.',
+                          'Welcome back, ${user.name}.',
                           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                            color: CampusGptTheme.primaryContainer,
-                            fontSize: 20,
-                          ),
+                                color: CampusGptTheme.primaryContainer,
+                                fontSize: 20,
+                              ),
                         ),
                         const SizedBox(height: 4),
                         Text(
@@ -92,19 +95,19 @@ class DashboardScreen extends StatelessWidget {
                       Text(
                         'AI SCORE',
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: CampusGptTheme.secondaryContainer,
-                        ),
+                              color: CampusGptTheme.secondaryContainer,
+                            ),
                       ),
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.baseline,
                         textBaseline: TextBaseline.alphabetic,
                         children: [
-                          const GradientText(
-                            '88',
-                            gradient: LinearGradient(
+                          GradientText(
+                            '$aiScore',
+                            gradient: const LinearGradient(
                               colors: [CampusGptTheme.primary, CampusGptTheme.secondary],
                             ),
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 32,
                               fontWeight: FontWeight.w700,
                               height: 1.2,
@@ -114,8 +117,8 @@ class DashboardScreen extends StatelessWidget {
                           Text(
                             '/100',
                             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: CampusGptTheme.onSurfaceVariant.withOpacity(0.7),
-                            ),
+                                  color: CampusGptTheme.onSurfaceVariant.withOpacity(0.7),
+                                ),
                           ),
                         ],
                       ),
@@ -130,14 +133,14 @@ class DashboardScreen extends StatelessWidget {
                   Text(
                     'Daily Progress',
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: CampusGptTheme.onSurfaceVariant.withOpacity(0.7),
-                    ),
+                          color: CampusGptTheme.onSurfaceVariant.withOpacity(0.7),
+                        ),
                   ),
                   Text(
-                    '72%',
+                    '${(aiScore * 0.82).round()}%',
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: CampusGptTheme.onSurfaceVariant.withOpacity(0.7),
-                    ),
+                          color: CampusGptTheme.onSurfaceVariant.withOpacity(0.7),
+                        ),
                   ),
                 ],
               ),
@@ -149,7 +152,7 @@ class DashboardScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(3),
                 ),
                 child: FractionallySizedBox(
-                  widthFactor: 0.72,
+                  widthFactor: (aiScore / 100).clamp(0.05, 1.0),
                   alignment: Alignment.centerLeft,
                   child: Container(
                     decoration: BoxDecoration(
@@ -165,13 +168,14 @@ class DashboardScreen extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 16),
-        
-        // Bento Grid
         Row(
           children: [
             Expanded(
               child: GlassCard(
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AttendanceScreen())),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AttendanceScreen()),
+                ),
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -183,28 +187,24 @@ class DashboardScreen extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: Colors.green.withOpacity(0.2),
+                            color: (isSafe ? Colors.green : CampusGptTheme.error).withOpacity(0.2),
                             borderRadius: BorderRadius.circular(4),
-                            border: Border.all(color: Colors.green.withOpacity(0.3)),
                           ),
                           child: Text(
-                            'SAFE',
+                            isSafe ? 'SAFE' : 'WARN',
                             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              color: Colors.greenAccent,
-                              fontSize: 10,
-                            ),
+                                  color: isSafe ? Colors.greenAccent : CampusGptTheme.error,
+                                  fontSize: 10,
+                                ),
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 16),
-                    Text(
-                      'ATTENDANCE',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(fontSize: 10),
-                    ),
+                    Text('ATTENDANCE', style: Theme.of(context).textTheme.labelSmall?.copyWith(fontSize: 10)),
                     const SizedBox(height: 4),
                     Text(
-                      '84.5%',
+                      '${attendance.toStringAsFixed(1)}%',
                       style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontSize: 20),
                     ),
                   ],
@@ -214,20 +214,20 @@ class DashboardScreen extends StatelessWidget {
             const SizedBox(width: 16),
             Expanded(
               child: GlassCard(
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotesScreen())),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const NotesScreen()),
+                ),
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Icon(Icons.auto_awesome, color: CampusGptTheme.primary),
                     const SizedBox(height: 16),
-                    Text(
-                      'NOTES GEN',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(fontSize: 10),
-                    ),
+                    Text('NOTES GEN', style: Theme.of(context).textTheme.labelSmall?.copyWith(fontSize: 10)),
                     const SizedBox(height: 4),
                     Text(
-                      'Draft 04',
+                      '${notesCount.toString().padLeft(2, '0')} Notes',
                       style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontSize: 20),
                     ),
                   ],
@@ -241,21 +241,21 @@ class DashboardScreen extends StatelessWidget {
           children: [
             Expanded(
               child: GlassCard(
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PyqScreen())),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const PyqScreen()),
+                ),
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Icon(Icons.analytics, color: CampusGptTheme.tertiary),
                     const SizedBox(height: 16),
-                    Text(
-                      'PYQ ANALYZER',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(fontSize: 10),
-                    ),
+                    Text('PYQ ANALYZER', style: Theme.of(context).textTheme.labelSmall?.copyWith(fontSize: 10)),
                     const SizedBox(height: 4),
-                    Text(
+                    const Text(
                       '6 Trends',
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontSize: 20),
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
                     ),
                   ],
                 ),
@@ -264,20 +264,20 @@ class DashboardScreen extends StatelessWidget {
             const SizedBox(width: 16),
             Expanded(
               child: GlassCard(
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AssistantScreen())),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AssistantScreen()),
+                ),
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Icon(Icons.psychology, color: CampusGptTheme.secondary),
                     const SizedBox(height: 16),
-                    Text(
-                      'AI TUTOR',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(fontSize: 10),
-                    ),
+                    Text('AI TUTOR', style: Theme.of(context).textTheme.labelSmall?.copyWith(fontSize: 10)),
                     const SizedBox(height: 4),
                     Text(
-                      'Online',
+                      appState.isOnline ? 'Online' : 'Offline',
                       style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontSize: 20),
                     ),
                   ],
@@ -286,9 +286,37 @@ class DashboardScreen extends StatelessWidget {
             ),
           ],
         ),
+        const SizedBox(height: 16),
+        GlassCard(
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const GpaScreen()),
+          ),
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              const Icon(Icons.calculate, color: CampusGptTheme.secondary),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'GPA Predictor',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                    ),
+                    Text(
+                      'Target ${appState.targetGpa.toStringAsFixed(1)} • Current ${appState.currentCgpa.toStringAsFixed(1)}',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right),
+            ],
+          ),
+        ),
         const SizedBox(height: 24),
-        
-        // Upcoming Exams
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -297,29 +325,33 @@ class DashboardScreen extends StatelessWidget {
               style: Theme.of(context).textTheme.labelSmall?.copyWith(letterSpacing: 1.5),
             ),
             GestureDetector(
-              onTap: () {
-                ScaffoldMessenger.of(context).clearSnackBars();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Loading all upcoming exams...'),
-                    backgroundColor: CampusGptTheme.secondaryContainer,
-                  ),
-                );
-              },
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ExamsScreen()),
+              ),
               child: Text(
                 'View All',
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: CampusGptTheme.secondary,
-                  fontSize: 10,
-                ),
+                      color: CampusGptTheme.secondary,
+                      fontSize: 10,
+                    ),
               ),
             ),
           ],
         ),
         const SizedBox(height: 12),
-        _buildExamCard(context, '03', 'Advanced Thermodynamics', 'Final Assessment • Hall 4B'),
-        const SizedBox(height: 12),
-        _buildExamCard(context, '08', 'Data Structures & Algos', 'Midterm • LT-12'),
+        ...appState.exams.take(2).map((exam) {
+          final days = exam.date.difference(DateTime.now()).inDays.clamp(0, 99);
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _buildExamCard(
+              context,
+              days.toString().padLeft(2, '0'),
+              exam.title,
+              exam.subtitle,
+            ),
+          );
+        }),
       ],
     );
   }
@@ -343,17 +375,12 @@ class DashboardScreen extends StatelessWidget {
                 Text(
                   days,
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontSize: 18,
-                    height: 1.0,
-                    color: CampusGptTheme.primary,
-                  ),
+                        fontSize: 18,
+                        height: 1.0,
+                        color: CampusGptTheme.primary,
+                      ),
                 ),
-                Text(
-                  'Days',
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    fontSize: 8,
-                  ),
-                ),
+                Text('Days', style: Theme.of(context).textTheme.labelSmall?.copyWith(fontSize: 8)),
               ],
             ),
           ),
@@ -365,21 +392,15 @@ class DashboardScreen extends StatelessWidget {
                 Text(
                   title,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: CampusGptTheme.onSurface,
-                  ),
+                        fontWeight: FontWeight.w600,
+                        color: CampusGptTheme.onSurface,
+                      ),
                 ),
-                Text(
-                  subtitle,
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
+                Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
               ],
             ),
           ),
-          Icon(
-            Icons.chevron_right,
-            color: CampusGptTheme.onSurfaceVariant.withOpacity(0.5),
-          ),
+          Icon(Icons.chevron_right, color: CampusGptTheme.onSurfaceVariant.withOpacity(0.5)),
         ],
       ),
     );

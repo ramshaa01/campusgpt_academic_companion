@@ -1,16 +1,28 @@
 import 'dart:ui';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
-import 'theme.dart';
-import 'screens/dashboard_screen.dart';
-import 'screens/notes_screen.dart';
+import 'package:provider/provider.dart';
 import 'screens/assistant_screen.dart';
-import 'screens/attendance_screen.dart';
-import 'screens/gpa_screen.dart';
-import 'screens/pyq_screen.dart';
+import 'screens/dashboard_screen.dart';
+import 'screens/login_screen.dart';
+import 'screens/notes_screen.dart';
 import 'screens/vault_screen.dart';
+import 'services/storage_service.dart';
+import 'state/app_state.dart';
+import 'theme.dart';
 
-void main() {
-  runApp(const CampusGptApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final storage = StorageService();
+  await storage.init();
+  final appState = AppState(storage);
+  await appState.load();
+  runApp(
+    ChangeNotifierProvider.value(
+      value: appState,
+      child: const CampusGptApp(),
+    ),
+  );
 }
 
 class CampusGptApp extends StatelessWidget {
@@ -22,8 +34,44 @@ class CampusGptApp extends StatelessWidget {
       title: 'CampusGPT',
       debugShowCheckedModeBanner: false,
       theme: CampusGptTheme.darkTheme,
-      home: const MainShell(),
+      home: const AppRoot(),
     );
+  }
+}
+
+class AppRoot extends StatefulWidget {
+  const AppRoot({super.key});
+
+  @override
+  State<AppRoot> createState() => _AppRootState();
+}
+
+class _AppRootState extends State<AppRoot> {
+  @override
+  void initState() {
+    super.initState();
+    Connectivity().onConnectivityChanged.listen((results) {
+      final online = results.any((r) => r != ConnectivityResult.none);
+      if (mounted) context.read<AppState>().setOnline(online);
+    });
+    Connectivity().checkConnectivity().then((results) {
+      final online = results.any((r) => r != ConnectivityResult.none);
+      if (mounted) context.read<AppState>().setOnline(online);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final appState = context.watch<AppState>();
+    if (appState.isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (appState.user == null) {
+      return const LoginScreen();
+    }
+    return const MainShell();
   }
 }
 
@@ -37,19 +85,20 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   int _currentIndex = 0;
 
-  final List<Widget> _screens = [
-    const DashboardScreen(),
-    const NotesScreen(),
-    const AssistantScreen(),
-    const VaultScreen(),
+  final List<Widget> _screens = const [
+    DashboardScreen(),
+    NotesScreen(),
+    AssistantScreen(),
+    VaultScreen(),
   ];
 
   @override
   Widget build(BuildContext context) {
+    final appState = context.watch<AppState>();
+
     return Scaffold(
       body: Stack(
         children: [
-          // Background Gradient
           Container(
             decoration: const BoxDecoration(
               gradient: RadialGradient(
@@ -62,8 +111,6 @@ class _MainShellState extends State<MainShell> {
               ),
             ),
           ),
-          
-          // Current Screen
           SafeArea(
             bottom: false,
             child: IndexedStack(
@@ -71,17 +118,32 @@ class _MainShellState extends State<MainShell> {
               children: _screens,
             ),
           ),
-
-          // Contextual AI FAB
+          if (!appState.isOnline)
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: Material(
+                color: CampusGptTheme.error.withOpacity(0.92),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.wifi_off, size: 18),
+                      const SizedBox(width: 8),
+                      const Expanded(
+                        child: Text('Offline — AI uses local responses until you reconnect.'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           Positioned(
-            bottom: 80 + 16, // above nav bar
+            bottom: 80 + 16,
             right: 16,
             child: FloatingActionButton(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const AssistantScreen()),
-                );
-              },
+              onPressed: () => setState(() => _currentIndex = 2),
               backgroundColor: Colors.transparent,
               elevation: 0,
               child: Container(
@@ -99,7 +161,7 @@ class _MainShellState extends State<MainShell> {
                       color: CampusGptTheme.primary.withOpacity(0.3),
                       blurRadius: 12,
                       offset: const Offset(0, 4),
-                    )
+                    ),
                   ],
                 ),
                 child: const Icon(Icons.bolt, color: CampusGptTheme.onPrimary, size: 28),

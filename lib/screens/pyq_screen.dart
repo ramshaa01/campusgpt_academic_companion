@@ -32,19 +32,22 @@ class _PyqScreenState extends State<PyqScreen> {
           'q': 'Derive the efficiency of a Carnot engine working between temperatures T1 and T2.',
           'freq': 'Asked 4 times',
           'prob': 'High Probability',
-          'hint': 'Start with the PV diagram. Calculate heat absorbed (Q1) during isothermal expansion and heat rejected (Q2) during isothermal compression. Efficiency = 1 - Q2/Q1.',
+          'hint':
+              'Start with the PV diagram. Calculate heat absorbed (Q1) during isothermal expansion and heat rejected (Q2) during isothermal compression. Efficiency = 1 - Q2/Q1.',
         },
         {
           'q': 'Explain the Clausius inequality and its significance in thermodynamics.',
           'freq': 'Asked 3 times',
           'prob': 'Medium Probability',
-          'hint': 'The cyclic integral of dQ/T is less than or equal to zero. Mention how it differentiates between reversible and irreversible processes.',
+          'hint':
+              'The cyclic integral of dQ/T is less than or equal to zero. Mention how it differentiates between reversible and irreversible processes.',
         },
         {
           'q': 'What is the physical significance of entropy? Discuss the principle of increase of entropy.',
           'freq': 'Asked 3 times',
           'prob': 'Medium Probability',
-          'hint': 'Relate entropy to disorder/randomness. State the second law in terms of isolated systems always moving towards maximum entropy.',
+          'hint':
+              'Relate entropy to disorder/randomness. State the second law in terms of isolated systems always moving towards maximum entropy.',
         },
       ],
     ),
@@ -53,62 +56,55 @@ class _PyqScreenState extends State<PyqScreen> {
       difficulty: 'Very High (9.0/10)',
       questions: [
         {
-          'q': 'Explain Dijkstra\'s shortest path algorithm with an example.',
+          'q': "Explain Dijkstra's shortest path algorithm with an example.",
           'freq': 'Asked 5 times',
           'prob': 'High Probability',
-          'hint': 'Use a priority queue. Initialize all distances to infinity, start node to 0. Greedily pick the minimum distance node and relax its edges.',
+          'hint':
+              'Use a priority queue. Initialize all distances to infinity, start node to 0. Greedily pick the minimum distance node and relax its edges.',
         },
         {
           'q': 'Write a recursive and iterative function for binary search.',
           'freq': 'Asked 3 times',
           'prob': 'Medium Probability',
-          'hint': 'Ensure the array is sorted. Keep track of low and high indices, calculate mid, and divide the search space by half.',
+          'hint':
+              'Ensure the array is sorted. Keep track of low and high indices, calculate mid, and divide the search space by half.',
         },
       ],
     ),
     'Quantum Physics': PyqData(
-      topTopic: 'Schrodinger Eq.',
+      topTopic: 'Schrödinger Eq.',
       difficulty: 'Medium (7.0/10)',
       questions: [
         {
-          'q': 'Derive the time-independent Schrodinger wave equation.',
+          'q': 'Derive the time-independent Schrödinger wave equation.',
           'freq': 'Asked 4 times',
           'prob': 'High Probability',
-          'hint': 'Start with the classical wave equation. Use de Broglie wavelength and substitute the momentum operator to arrive at the Hamiltonian operator form.',
+          'hint':
+              'Start with the classical wave equation. Use de Broglie wavelength and substitute the momentum operator to arrive at the Hamiltonian operator form.',
         },
       ],
     ),
   };
 
   void _showHintDialog(String question, String hint) {
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: CampusGptTheme.surfaceContainerHigh,
-        title: Row(
+        title: const Row(
           children: [
-            const Icon(Icons.auto_awesome, color: CampusGptTheme.primary),
-            const SizedBox(width: 8),
-            const Text('AI Hint', style: TextStyle(color: CampusGptTheme.onSurface)),
+            Icon(Icons.auto_awesome, color: CampusGptTheme.primary),
+            SizedBox(width: 8),
+            Text('Study Hint', style: TextStyle(color: CampusGptTheme.onSurface)),
           ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              question,
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                fontStyle: FontStyle.italic,
-              ),
-            ),
+            Text(question, style: Theme.of(context).textTheme.labelSmall?.copyWith(fontStyle: FontStyle.italic)),
             const SizedBox(height: 16),
-            Text(
-              hint,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: CampusGptTheme.onSurface,
-              ),
-            ),
+            Text(hint, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: CampusGptTheme.onSurface)),
           ],
         ),
         actions: [
@@ -128,7 +124,6 @@ class _PyqScreenState extends State<PyqScreen> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 64, 16, 120),
       children: [
-        // Header
         Row(
           children: [
             if (Navigator.of(context).canPop())
@@ -140,16 +135,14 @@ class _PyqScreenState extends State<PyqScreen> {
               child: Text(
                 'PYQ Analyzer',
                 style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                  fontSize: 24,
-                  color: CampusGptTheme.onSurface,
-                ),
+                      fontSize: 24,
+                      color: CampusGptTheme.onSurface,
+                    ),
               ),
             ),
           ],
         ),
         const SizedBox(height: 24),
-        
-        // Subject Selector
         GlassCard(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           child: DropdownButtonHideUnderline(
@@ -157,31 +150,19 @@ class _PyqScreenState extends State<PyqScreen> {
               value: _selectedSubject,
               dropdownColor: CampusGptTheme.surfaceContainerHigh,
               isExpanded: true,
-              icon: const Icon(Icons.keyboard_arrow_down, color: CampusGptTheme.onSurface),
-              items: _mockData.keys.map((String value) {
-                return DropdownMenuItem<String>(
+              items: _mockData.keys.map((value) {
+                return DropdownMenuItem(
                   value: value,
-                  child: Text(
-                    value,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: CampusGptTheme.onSurface,
-                    ),
-                  ),
+                  child: Text(value, style: Theme.of(context).textTheme.bodyMedium),
                 );
               }).toList(),
-              onChanged: (String? newValue) {
-                if (newValue != null) {
-                  setState(() {
-                    _selectedSubject = newValue;
-                  });
-                }
+              onChanged: (value) {
+                if (value != null) setState(() => _selectedSubject = value);
               },
             ),
           ),
         ),
         const SizedBox(height: 24),
-        
-        // Trends Summary
         Row(
           children: [
             Expanded(
@@ -191,18 +172,12 @@ class _PyqScreenState extends State<PyqScreen> {
                   children: [
                     const Icon(Icons.trending_up, color: CampusGptTheme.secondary),
                     const SizedBox(height: 12),
-                    Text(
-                      'Top Topic',
-                      style: Theme.of(context).textTheme.labelSmall,
-                    ),
+                    Text('Top Topic', style: Theme.of(context).textTheme.labelSmall),
                     const SizedBox(height: 4),
                     Text(
                       currentData.topTopic,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: CampusGptTheme.onSurface,
-                      ),
                       textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
                     ),
                   ],
                 ),
@@ -216,18 +191,12 @@ class _PyqScreenState extends State<PyqScreen> {
                   children: [
                     const Icon(Icons.warning_amber, color: CampusGptTheme.error),
                     const SizedBox(height: 12),
-                    Text(
-                      'Difficulty',
-                      style: Theme.of(context).textTheme.labelSmall,
-                    ),
+                    Text('Difficulty', style: Theme.of(context).textTheme.labelSmall),
                     const SizedBox(height: 4),
                     Text(
                       currentData.difficulty,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: CampusGptTheme.onSurface,
-                      ),
                       textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
                     ),
                   ],
                 ),
@@ -236,28 +205,28 @@ class _PyqScreenState extends State<PyqScreen> {
           ],
         ),
         const SizedBox(height: 24),
-        
-        // Frequently Asked Questions
         Text(
           'FREQUENTLY ASKED (LAST 5 YEARS)',
           style: Theme.of(context).textTheme.labelSmall?.copyWith(letterSpacing: 1.5),
         ),
         const SizedBox(height: 16),
-        ...currentData.questions.map((q) => Padding(
-          padding: const EdgeInsets.only(bottom: 12.0),
-          child: _buildQuestionCard(
-            context, 
-            q['q']!,
-            q['freq']!,
-            q['prob']!,
-            q['hint']!,
+        ...currentData.questions.map(
+          (q) => Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _buildQuestionCard(context, q['q']!, q['freq']!, q['prob']!, q['hint']!),
           ),
-        )).toList(),
+        ),
       ],
     );
   }
 
-  Widget _buildQuestionCard(BuildContext context, String question, String frequency, String probability, String hint) {
+  Widget _buildQuestionCard(
+    BuildContext context,
+    String question,
+    String frequency,
+    String probability,
+    String hint,
+  ) {
     return GlassCard(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -272,38 +241,25 @@ class _PyqScreenState extends State<PyqScreen> {
                   color: CampusGptTheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(4),
                 ),
-                child: Text(
-                  frequency,
-                  style: Theme.of(context).textTheme.labelSmall,
-                ),
+                child: Text(frequency, style: Theme.of(context).textTheme.labelSmall),
               ),
               Text(
                 probability,
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: probability.contains('High') 
-                      ? CampusGptTheme.error 
-                      : CampusGptTheme.secondary,
-                ),
+                      color: probability.contains('High') ? CampusGptTheme.error : CampusGptTheme.secondary,
+                    ),
               ),
             ],
           ),
           const SizedBox(height: 16),
-          Text(
-            question,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: CampusGptTheme.onSurface,
-            ),
-          ),
+          Text(question, style: Theme.of(context).textTheme.bodyMedium),
           const SizedBox(height: 16),
           Align(
             alignment: Alignment.centerRight,
             child: TextButton.icon(
               onPressed: () => _showHintDialog(question, hint),
               icon: const Icon(Icons.auto_awesome, size: 16),
-              label: const Text('AI Hint'),
-              style: TextButton.styleFrom(
-                foregroundColor: CampusGptTheme.primary,
-              ),
+              label: const Text('Study Hint'),
             ),
           ),
         ],

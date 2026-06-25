@@ -1,12 +1,12 @@
 {
-    "name": "campusgpt_academic_companion",
-    "short_name": "campusgpt_academic_companion",
+    "name": "CampusGPT — Academic Companion",
+    "short_name": "CampusGPT",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
-    "orientation": "portrait-primary",
+    "background_color": "#0B1326",
+    "theme_color": "#0B1326",
+    "description": "AI study assistant, notes, GPA predictor, attendance tracker, and PYQ analyzer.",
+    "orientation": "any",
     "prefer_related_applications": false,
     "icons": [
         {

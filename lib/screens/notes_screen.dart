@@ -1,13 +1,10 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../models/app_models.dart';
+import '../state/app_state.dart';
 import '../theme.dart';
-
-class NoteDraft {
-  final String title;
-  final String subtitle;
-  final String time;
-
-  NoteDraft({required this.title, required this.subtitle, required this.time});
-}
+import '../widgets/help_dialog.dart';
 
 class NotesScreen extends StatefulWidget {
   const NotesScreen({super.key});
@@ -17,19 +14,27 @@ class NotesScreen extends StatefulWidget {
 }
 
 class _NotesScreenState extends State<NotesScreen> {
-  final List<NoteDraft> _drafts = [
-    NoteDraft(title: 'Advanced Thermodynamics', subtitle: 'Lecture 4 Summary', time: '2 hrs ago'),
-    NoteDraft(title: 'Data Structures', subtitle: 'Graphs & Trees', time: 'Yesterday'),
-    NoteDraft(title: 'Quantum Physics', subtitle: 'Schrodinger Eq.', time: '3 days ago'),
-  ];
-
   bool _isProcessing = false;
 
-  void _simulateProcessing(String type) async {
-    setState(() {
-      _isProcessing = true;
-    });
+  Future<void> _processUpload(String type) async {
+    setState(() => _isProcessing = true);
 
+    String topicHint = type;
+    if (type == 'Document') {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf', 'ppt', 'pptx', 'doc', 'docx', 'txt'],
+        withData: true,
+      );
+      if (result == null || result.files.isEmpty) {
+        setState(() => _isProcessing = false);
+        return;
+      }
+      final file = result.files.first;
+      topicHint = file.name.replaceAll(RegExp(r'\.[^.]+$'), '');
+    }
+
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Processing $type... Please wait.'),
@@ -37,20 +42,20 @@ class _NotesScreenState extends State<NotesScreen> {
       ),
     );
 
-    // Simulate network/processing delay
-    await Future.delayed(const Duration(seconds: 2));
+    final appState = context.read<AppState>();
+    final body = await appState.ai.generateNotes(
+      sourceLabel: type,
+      topicHint: topicHint,
+    );
+
+    await appState.addNote(
+      title: topicHint,
+      subtitle: 'Auto-generated notes',
+      body: body,
+    );
 
     if (!mounted) return;
-
-    setState(() {
-      _isProcessing = false;
-      _drafts.insert(0, NoteDraft(
-        title: 'New $type Upload', 
-        subtitle: 'Auto-generated notes', 
-        time: 'Just now'
-      ));
-    });
-
+    setState(() => _isProcessing = false);
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Notes generated successfully!'),
@@ -59,79 +64,111 @@ class _NotesScreenState extends State<NotesScreen> {
     );
   }
 
+  void _showNoteDetail(NoteDraft note) {
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: CampusGptTheme.surfaceContainerHigh,
+        title: Text(note.title, style: const TextStyle(color: CampusGptTheme.onSurface)),
+        content: SingleChildScrollView(
+          child: Text(note.body, style: Theme.of(context).textTheme.bodyMedium),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final notes = context.watch<AppState>().notes;
+
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 64, 16, 120),
       children: [
-        // Header
         Row(
           children: [
             Expanded(
               child: Text(
                 'AI Notes Gen',
                 style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                  fontSize: 24,
-                  color: CampusGptTheme.onSurface,
-                ),
+                      fontSize: 24,
+                      color: CampusGptTheme.onSurface,
+                    ),
               ),
             ),
             IconButton(
-              icon: const Icon(Icons.settings),
-              onPressed: () {},
+              icon: const Icon(Icons.help_outline),
+              onPressed: () => showHelpDialog(
+                context,
+                title: 'AI Notes Gen',
+                body:
+                    'Record a lecture or upload PDF/PPT/DOC files. CampusGPT generates structured study notes and saves them to your list automatically.',
+              ),
             ),
           ],
         ),
         const SizedBox(height: 24),
-        
-        // Actions
         Row(
           children: [
             Expanded(
               child: _buildActionCard(
-                context, 
-                Icons.mic, 
-                'Record', 
+                context,
+                Icons.mic,
+                'Record',
                 'Live Lecture',
                 CampusGptTheme.primary,
-                () => _simulateProcessing('Audio Recording'),
+                () => _processUpload('Audio Recording'),
               ),
             ),
             const SizedBox(width: 16),
             Expanded(
               child: _buildActionCard(
-                context, 
-                Icons.upload_file, 
-                'Upload', 
+                context,
+                Icons.upload_file,
+                'Upload',
                 'PDF / PPT',
                 CampusGptTheme.secondary,
-                () => _simulateProcessing('Document'),
+                () => _processUpload('Document'),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 24),
-        
         if (_isProcessing) ...[
-          const LinearProgressIndicator(color: CampusGptTheme.primary),
           const SizedBox(height: 24),
+          const LinearProgressIndicator(color: CampusGptTheme.primary),
         ],
-
-        // Recent Drafts
+        const SizedBox(height: 24),
         Text(
           'RECENT NOTES',
           style: Theme.of(context).textTheme.labelSmall?.copyWith(letterSpacing: 1.5),
         ),
         const SizedBox(height: 16),
-        ..._drafts.map((draft) => Padding(
-          padding: const EdgeInsets.only(bottom: 12.0),
-          child: _buildDraftCard(context, draft.title, draft.subtitle, draft.time),
-        )).toList(),
+        ...notes.map(
+          (draft) => Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: GestureDetector(
+              onTap: () => _showNoteDetail(draft),
+              child: _buildDraftCard(context, draft.title, draft.subtitle, draft.time),
+            ),
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildActionCard(BuildContext context, IconData icon, String title, String subtitle, Color color, VoidCallback onTap) {
+  Widget _buildActionCard(
+    BuildContext context,
+    IconData icon,
+    String title,
+    String subtitle,
+    Color color,
+    VoidCallback onTap,
+  ) {
     return GestureDetector(
       onTap: _isProcessing ? null : onTap,
       child: GlassCard(
@@ -147,15 +184,9 @@ class _NotesScreenState extends State<NotesScreen> {
               child: Icon(icon, color: color, size: 32),
             ),
             const SizedBox(height: 16),
-            Text(
-              title,
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontSize: 18),
-            ),
+            Text(title, style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontSize: 18)),
             const SizedBox(height: 4),
-            Text(
-              subtitle,
-              style: Theme.of(context).textTheme.labelSmall,
-            ),
+            Text(subtitle, style: Theme.of(context).textTheme.labelSmall),
           ],
         ),
       ),
@@ -183,22 +214,16 @@ class _NotesScreenState extends State<NotesScreen> {
                 Text(
                   title,
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: CampusGptTheme.onSurface,
-                  ),
+                        fontWeight: FontWeight.w600,
+                        color: CampusGptTheme.onSurface,
+                      ),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
+                Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
               ],
             ),
           ),
-          Text(
-            time,
-            style: Theme.of(context).textTheme.labelSmall,
-          ),
+          Text(time, style: Theme.of(context).textTheme.labelSmall),
         ],
       ),
     );

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../state/app_state.dart';
 import '../theme.dart';
+import '../widgets/help_dialog.dart';
 
 class AssistantScreen extends StatefulWidget {
   const AssistantScreen({super.key});
@@ -10,38 +13,27 @@ class AssistantScreen extends StatefulWidget {
 
 class _AssistantScreenState extends State<AssistantScreen> {
   final TextEditingController _controller = TextEditingController();
-  final List<Map<String, dynamic>> _messages = [
-    {
-      'role': 'ai',
-      'content': "Hi Alex! I noticed you have your Advanced Thermodynamics final in 3 days. Would you like me to generate a practice quiz based on past years' papers?"
-    }
-  ];
 
-  void _sendMessage(String text) {
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _sendMessage(String text) async {
     if (text.trim().isEmpty) return;
-    setState(() {
-      _messages.insert(0, {'role': 'user', 'content': text});
-      _controller.clear();
-      
-      // Simulate AI response
-      Future.delayed(const Duration(seconds: 1), () {
-        if (mounted) {
-          setState(() {
-            _messages.insert(0, {
-              'role': 'ai',
-              'content': 'I am generating a comprehensive quiz covering entropy, enthalpy, and the Carnot cycle. This should take just a moment...'
-            });
-          });
-        }
-      });
-    });
+    _controller.clear();
+    await context.read<AppState>().sendChatMessage(text);
   }
 
   @override
   Widget build(BuildContext context) {
+    final appState = context.watch<AppState>();
+    final messages = appState.chatMessages;
+    final isOnline = appState.isOnline;
+
     return Column(
       children: [
-        // App Bar
         Container(
           padding: const EdgeInsets.only(top: 50, bottom: 16, left: 16, right: 16),
           decoration: BoxDecoration(
@@ -60,9 +52,9 @@ class _AssistantScreenState extends State<AssistantScreen> {
               Container(
                 width: 32,
                 height: 32,
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   shape: BoxShape.circle,
-                  gradient: const LinearGradient(
+                  gradient: LinearGradient(
                     colors: [CampusGptTheme.primary, CampusGptTheme.secondary],
                   ),
                 ),
@@ -76,42 +68,84 @@ class _AssistantScreenState extends State<AssistantScreen> {
                     Text(
                       'AI Study Assistant',
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: CampusGptTheme.onSurface,
-                      ),
+                            fontWeight: FontWeight.w600,
+                            color: CampusGptTheme.onSurface,
+                          ),
                     ),
-                    Text(
-                      'Always Online',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: CampusGptTheme.secondary,
-                      ),
+                    Row(
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          margin: const EdgeInsets.only(right: 6),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: isOnline ? Colors.greenAccent : CampusGptTheme.error,
+                          ),
+                        ),
+                        Text(
+                          isOnline ? 'Online' : 'Offline (local AI)',
+                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                color: isOnline ? CampusGptTheme.secondary : CampusGptTheme.error,
+                              ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
-              IconButton(
+              PopupMenuButton<String>(
                 icon: const Icon(Icons.more_vert),
-                onPressed: () {},
+                onSelected: (value) async {
+                  if (value == 'clear') {
+                    await appState.clearChat();
+                  } else if (value == 'help') {
+                    if (context.mounted) {
+                      await showHelpDialog(
+                        context,
+                        title: 'AI Study Assistant',
+                        body:
+                            'Ask for quizzes, summaries, GPA advice, or exam prep. Responses are saved in this session. Set OPENAI_API_KEY at build time for cloud AI.',
+                      );
+                    }
+                  }
+                },
+                itemBuilder: (context) => const [
+                  PopupMenuItem(value: 'help', child: Text('Help')),
+                  PopupMenuItem(value: 'clear', child: Text('Clear chat')),
+                ],
               ),
             ],
           ),
         ),
-        
-        // Chat Area
         Expanded(
           child: ListView.builder(
             padding: const EdgeInsets.all(16),
             reverse: true,
-            itemCount: _messages.length,
+            itemCount: messages.length + (appState.isAiThinking ? 1 : 0),
             itemBuilder: (context, index) {
-              final msg = _messages[index];
-              final isUser = msg['role'] == 'user';
-              return _buildMessageBubble(msg['content'], isUser);
+              if (appState.isAiThinking && index == 0) {
+                return const Padding(
+                  padding: EdgeInsets.only(bottom: 16),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                      SizedBox(width: 12),
+                      Text('Thinking...'),
+                    ],
+                  ),
+                );
+              }
+              final msgIndex = appState.isAiThinking ? index - 1 : index;
+              final msg = messages[msgIndex];
+              return _buildMessageBubble(msg.content, msg.role == 'user');
             },
           ),
         ),
-        
-        // Quick Prompts
         SizedBox(
           height: 40,
           child: ListView(
@@ -127,8 +161,6 @@ class _AssistantScreenState extends State<AssistantScreen> {
           ),
         ),
         const SizedBox(height: 12),
-        
-        // Input Area
         Container(
           padding: const EdgeInsets.all(16),
           color: CampusGptTheme.surfaceContainerLowest.withOpacity(0.5),
@@ -146,6 +178,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
                     ),
                     child: TextField(
                       controller: _controller,
+                      enabled: !appState.isAiThinking,
                       style: const TextStyle(color: CampusGptTheme.onSurface),
                       decoration: InputDecoration(
                         hintText: 'Ask your AI tutor...',
@@ -158,7 +191,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
                 ),
                 const SizedBox(width: 12),
                 GestureDetector(
-                  onTap: () => _sendMessage(_controller.text),
+                  onTap: appState.isAiThinking ? null : () => _sendMessage(_controller.text),
                   child: Container(
                     width: 48,
                     height: 48,
@@ -203,7 +236,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
             child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: isUser 
+                color: isUser
                     ? CampusGptTheme.primaryContainer.withOpacity(0.2)
                     : CampusGptTheme.surfaceContainer,
                 borderRadius: BorderRadius.circular(16).copyWith(
@@ -211,7 +244,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
                   bottomLeft: !isUser ? const Radius.circular(4) : const Radius.circular(16),
                 ),
                 border: Border.all(
-                  color: isUser 
+                  color: isUser
                       ? CampusGptTheme.primary.withOpacity(0.3)
                       : CampusGptTheme.onSurface.withOpacity(0.1),
                 ),
@@ -219,8 +252,8 @@ class _AssistantScreenState extends State<AssistantScreen> {
               child: Text(
                 content,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: CampusGptTheme.onSurface,
-                ),
+                      color: CampusGptTheme.onSurface,
+                    ),
               ),
             ),
           ),

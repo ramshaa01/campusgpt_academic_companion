@@ -45,6 +45,31 @@ class CampusGptTheme {
         error: error,
       ),
       scaffoldBackgroundColor: surfaceContainerLowest,
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: surfaceContainer,
+        labelStyle: const TextStyle(color: onSurfaceVariant),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: onSurface.withOpacity(0.1)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: onSurface.withOpacity(0.1)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: primary, width: 1.5),
+        ),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: primaryContainer,
+          foregroundColor: onSurface,
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      ),
       textTheme: TextTheme(
         displayLarge: GoogleFonts.notoSans(
           fontSize: 48,
