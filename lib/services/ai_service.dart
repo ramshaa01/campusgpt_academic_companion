@@ -146,7 +146,7 @@ Try asking:
   String _localNotes(String topicHint, String sourceLabel) {
     final topic = topicHint.isNotEmpty ? topicHint : 'General Study Material';
     return '''# $topic
-_Source: $sourceLabel_
+_Source: ${sourceLabel}_
 
 ## Key Concepts
 • Define core terms and relationships before memorizing formulas.
