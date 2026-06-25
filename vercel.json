@@ -1,5 +1,5 @@
 {
-  "buildCommand": "bash build.sh",
+  "buildCommand": "git clone --depth 1 https://github.com/flutter/flutter.git -b stable && ./flutter/bin/flutter config --no-analytics && ./flutter/bin/flutter build web --release --web-renderer html",
   "outputDirectory": "build/web",
   "headers": [
     {
